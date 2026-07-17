@@ -1,28 +1,34 @@
 # Daily AI Tweet Generator
 
-An n8n workflow that runs on a daily schedule, generates 10 ready-to-post X (Twitter) posts on user-defined topics using an LLM, and delivers them to a Google Sheet for review and scheduling.
+An n8n workflow that runs every night, reads today's top AI news headlines, and uses an LLM to draft 12 ready-to-post X (Twitter) posts about AI — logged to a Google Sheet for human review, never auto-published.
 
 ---
 
 ## What It Does
 
-Maintaining a consistent X presence requires daily content creation — time most business owners and creators don't have. This workflow generates a full day's worth of posts automatically every morning, dropping them into a Google Sheet where they can be reviewed, edited, and scheduled at your convenience.
+Maintaining a consistent X presence requires daily content creation — time most business owners and creators don't have. This workflow pulls today's trending AI headlines and turns them into a batch of on-voice, aphoristic tweets each night, dropping them into a Google Sheet where they can be reviewed, edited, and scheduled at your convenience.
 
-**Input:** User-defined topics configured in the workflow
-**Output:** 10 post variations per run, logged to Google Sheets with date and topic
+**Input:** Top AI headlines from Google News (via RSS), fetched automatically each run
+**Output:** 12 tweets per run — spread across categories (fine detail, high-level, optimistic, pessimistic, philosophical, contrarian, news-inspired) — logged to Google Sheets
 
 ---
 
 ## Pipeline Flow
 
 ```
-Schedule Trigger (daily)
+Schedule Trigger (daily, 10 PM)
         ↓
-Load user-defined topics
+Fetch AI News — Google News RSS search for "artificial intelligence"
         ↓
-LLM — Generate 10 X posts per topic
+Keep top 8 headlines
         ↓
-Google Sheets — Append posts with date, topic, and content
+Format headlines + build prompt
+        ↓
+OpenAI (gpt-4o) — generate 12 tweets across fixed tone categories
+        ↓
+Parse response JSON
+        ↓
+Google Sheets — append each tweet with date, topic, and content
         ↓
 Ready for human review and scheduling
 ```
@@ -31,10 +37,11 @@ Ready for human review and scheduling
 
 ## Key Features
 
-- **Fully automated** — runs daily without any manual trigger
-- **User-defined topics** — configure your own topic list to match your niche and voice
-- **10 posts per run** — gives you options to choose from rather than locking you into one output
-- **Google Sheets output** — clean, reviewable log with date and topic columns
+- **Fully automated** — runs nightly without any manual trigger
+- **News-driven** — pulls real, current AI headlines instead of a static topic list
+- **12 posts per run** — spread across a fixed mix of tones (fine-detail, big-picture, optimistic, pessimistic, philosophical, contrarian, and news-inspired) so you have real variety to choose from
+- **Voice-constrained prompt** — hard rules baked into the prompt (280-char limit, no hashtags/emojis/links, punchline-driven, varied openers)
+- **Google Sheets output** — clean, reviewable log with date, topic, and content
 - **Non-destructive** — posts are never auto-published, always human-reviewed first
 
 ---
@@ -44,47 +51,35 @@ Ready for human review and scheduling
 | Tool | Role |
 |---|---|
 | n8n | Workflow orchestration and scheduling |
-| LLM (Claude / OpenAI) | Post generation |
+| Google News RSS | Source of daily AI headlines |
+| OpenAI (gpt-4o) | Tweet generation |
 | Google Sheets API | Output storage and review interface |
-
----
-
-## Environment Variables
-
-```
-CLAUDE_API_KEY=your_claude_api_key
-GOOGLE_SHEETS_CLIENT_ID=your_client_id
-GOOGLE_SHEETS_CLIENT_SECRET=your_client_secret
-GOOGLE_SHEETS_REFRESH_TOKEN=your_refresh_token
-GOOGLE_SHEETS_ID=your_spreadsheet_id
-```
 
 ---
 
 ## Setup
 
-1. Import `ai-tweet-generator.json` into your n8n instance
-2. Add Google Sheets OAuth2 credentials in n8n's Credentials manager
-3. Add your Claude or OpenAI API key
-4. Define your topics in the workflow configuration node
-5. Set your preferred daily schedule time
-6. Activate the workflow
+1. Import `Daily AI Tweet Generator n8n Workflow.json` into your n8n instance
+2. Add an OpenAI API credential in n8n's Credentials manager
+3. Add Google Sheets OAuth2 credentials and point the workflow at your own spreadsheet
+4. Adjust the RSS search query or schedule time if desired
+5. Activate the workflow
 
 ---
 
 ## Google Sheets Output Format
 
-| Date | Topic | Post | Status |
+| Date | Headline / Topic | Post | Category |
 |---|---|---|---|
-| 2026-06-02 | AI automation | Your generated post here... | Review |
+| 2026-06-02 | (source headline or null) | Your generated tweet text... | Contrarian |
 
 ---
 
 ## Roadmap
 
-- [x] Daily scheduled generation
-- [x] User-defined topic configuration
+- [x] Nightly scheduled generation
+- [x] Live AI news sourcing via RSS
 - [x] Google Sheets delivery
-- [ ] Tone/voice customization per topic
+- [ ] Tone/voice customization per run
 - [ ] Direct Buffer or Typefully integration for one-click scheduling
 - [ ] Engagement scoring to prioritize top posts
